@@ -7,25 +7,23 @@ import {
   Stack,
   Text,
 } from '@chakra-ui/react';
-import { withUrqlClient } from 'next-urql';
 import NextLink from 'next/link';
-import React, { useState } from 'react';
+import React from 'react';
 import { EditDeletePostButtons } from '../components/EditDeletePostButtons';
 import { Layout } from '../components/Layout';
 import { UpvoteSection } from '../components/UpvoteSection';
 import { usePostsQuery } from '../generated/graphql';
-import { createUrqlClient } from '../utils/createUrqlClient';
 
 const Index = () => {
-  const [variables, setVariables] = useState({
-    limit: 15,
-    cursor: null as null | string,
-  });
-  const [{ data, error, fetching }] = usePostsQuery({
-    variables,
+  const { data, error, loading, variables, fetchMore } = usePostsQuery({
+    variables: {
+      limit: 15,
+      cursor: null,
+    },
+    notifyOnNetworkStatusChange: true,
   });
 
-  if (!fetching && !data) {
+  if (!loading && !data) {
     return (
       <div>
         <div>Query failed for some reason</div>
@@ -36,7 +34,7 @@ const Index = () => {
 
   return (
     <Layout>
-      {!data && fetching ? (
+      {!data && loading ? (
         <div>Loading...</div>
       ) : (
         <Stack spacing={8}>
@@ -72,12 +70,15 @@ const Index = () => {
         <Flex>
           <Button
             onClick={() => {
-              setVariables({
-                limit: variables.limit,
-                cursor: data.posts.posts[data.posts.posts.length - 1].createdAt,
+              fetchMore({
+                variables: {
+                  limit: variables?.limit,
+                  cursor:
+                    data.posts.posts[data.posts.posts.length - 1].createdAt,
+                },
               });
             }}
-            isLoading={fetching}
+            isLoading={loading}
             m="auto"
             my={8}>
             load more
@@ -88,4 +89,4 @@ const Index = () => {
   );
 };
 
-export default withUrqlClient(createUrqlClient, { ssr: true })(Index);
+export default Index;
