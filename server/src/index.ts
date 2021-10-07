@@ -1,5 +1,6 @@
 import express from 'express';
 import 'reflect-metadata';
+import 'dotenv-safe/config';
 import { ApolloServer } from 'apollo-server-express';
 import { buildSchema } from 'type-graphql';
 import Redis from 'ioredis';
@@ -22,24 +23,21 @@ import { createUpvoteLoader } from './utils/createUpvoteLoader';
 const main = async () => {
   const conn = await createConnection({
     type: 'postgres',
-    database: 'lireddit',
-    username: 'postgres',
-    password: 'postgres',
+    url: process.env.DATABASE_URL,
     logging: true,
     synchronize: true,
     migrations: [path.join(__dirname, './migrations/*')],
     entities: [Post, User, Upvote],
   });
-  await conn.runMigrations(); // rerun
-
-  // await Post.delete({});
+  await conn.runMigrations();
 
   const app = express();
 
   const RedisStore = connectRedis(session);
-  const redis = new Redis();
+  const redis = new Redis(process.env.REDIS_URL);
+  app.set('proxy', 1);
 
-  app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+  app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
   app.use(
     session({
       name: COOKIE_NAME,
@@ -51,7 +49,7 @@ const main = async () => {
         sameSite: 'lax',
       },
       saveUninitialized: false,
-      secret: 'qweroqwefjhwrueirpfuwr5jsenog',
+      secret: process.env.SESSION_SECRET,
       resave: false,
     })
   );
@@ -75,7 +73,7 @@ const main = async () => {
     cors: false,
   });
 
-  app.listen(5000, () => {
+  app.listen(parseInt(process.env.PORT), () => {
     console.log('Server started on port 5000');
   });
 };
